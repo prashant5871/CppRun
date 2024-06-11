@@ -1,10 +1,11 @@
 import React from 'react'
+import CodeEditor from '../components/CodeEditor'
 
 const Home = () => {
   return (
-    <div>
-      This is home
-    </div>
+   <>
+   <CodeEditor/>
+   </>
   )
 }
 
