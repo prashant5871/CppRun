@@ -18,18 +18,20 @@ int main()
     const [language, setLanguage] = useState("cpp");
     const [output, setOutput] = useState();
     const [input, setInput] = useState();
+    const [socket, setSocket] = useState(null);
 
     useEffect(() => {
-      const newSocket = new WebSocket("ws://localhost:8080/executeCpp");
-      newSocket.onopen = () => {
-        console.log("webSocket connection established succesfully...");
-      }
+        const newSocket = new WebSocket("ws://localhost:8080/executeCpp");
+        newSocket.onopen = () => {
+            console.log("webSocket connection established succesfully...");
+        }
 
-      newSocket.onclose = () => {
-        console.log("websocket connection closed...");
-      }
+        newSocket.onclose = () => {
+            console.log("websocket connection closed...");
+        }
+        setSocket(newSocket);
     }, [])
-    
+
 
     const getLanguage = (language) => {
         switch (language) {
@@ -45,8 +47,13 @@ int main()
 
     }
     const handleRunCode = () => {
-        console.log("run code button clicked...");
-        console.log("code :" ,code);
+        // console.log("run code button clicked...");
+        // console.log("code :", code);
+        setOutput("");
+        if(socket && socket.readyState === WebSocket.OPEN)
+        {
+            socket.send("code:"+code);
+        }
     }
 
     return (
