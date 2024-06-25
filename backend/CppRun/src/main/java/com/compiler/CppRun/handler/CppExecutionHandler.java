@@ -57,12 +57,13 @@ public class CppExecutionHandler extends TextWebSocketHandler {
         // System.out.println("file Created succesfully...");
 
         ProcessBuilder compileBuiler = new ProcessBuilder("g++", fileName, "-o", randomString);
-        Process compilProcess = compileBuiler.start();
-        int exitCode = compilProcess.waitFor();
+        Process compileProcess = compileBuiler.start();
+        int exitCode = compileProcess.waitFor();
 
         if (exitCode != 0) {
-            System.out.println("error while compiling..");
-            session.sendMessage(new TextMessage("Error while compiling..."));
+            String errorOutput = new BufferedReader(new InputStreamReader(compileProcess.getErrorStream()))
+                    .lines().reduce("", (acc, line) -> acc + line + "\n");
+            session.sendMessage(new TextMessage("Compilation failed:\n" + errorOutput));
             return;
         }
 
@@ -80,20 +81,14 @@ public class CppExecutionHandler extends TextWebSocketHandler {
         sessionWriterMap.put(session, processWriter);
         sessionReaderMap.put(session, processReader);
 
-        readProcessOutput(session, processReader);
-
-        file.delete();
-        Thread.sleep(500);
         File secondFile = new File(executablePath + ".exe");
-        if (secondFile.delete()) {
-            System.out.println("exe file deleted succesfully...");
-        } else {
-            System.out.println("can not delete exe file...");
-        }
+        readProcessOutput(session, processReader, file, secondFile);
+        System.out.println("after readProcessOutput...");
 
     }
 
-    private void readProcessOutput(WebSocketSession session, BufferedReader processReader) {
+    private void readProcessOutput(WebSocketSession session, BufferedReader processReader, File f1, File f2) {
+        Thread t;
         new Thread(() -> {
             try {
                 String line;
@@ -103,12 +98,12 @@ public class CppExecutionHandler extends TextWebSocketHandler {
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
-                closeProcess(session);
+                closeProcess(session, f1, f2);
             }
         }).start();
     }
 
-    private void closeProcess(WebSocketSession session) {
+    private void closeProcess(WebSocketSession session, File f1, File f2) {
         try {
 
             Process process = sessionProcessMap.remove(session);
@@ -127,6 +122,19 @@ public class CppExecutionHandler extends TextWebSocketHandler {
             }
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            try {
+                Thread.sleep(1000);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            f1.delete();
+            if (f2.delete()) {
+                System.out.println("sucess");
+            } else {
+                System.out.println("failure");
+            }
+            // f2.delete();
         }
 
     }
