@@ -17,7 +17,7 @@ int main()
 `);
     const [language, setLanguage] = useState("cpp");
     const [output, setOutput] = useState("");
-    const [input, setInput] = useState();
+    const [input, setInput] = useState("");
     const [socket, setSocket] = useState(null);
 
     useEffect(() => {
@@ -48,7 +48,10 @@ int main()
 
 
     const sendInput = () => {
-
+        console.log("input is sending to the server...");
+        socket.send(input);
+        console.log("input has been sent succesfully...");
+        setInput("");
     }
     const handleRunCode = () => {
         // console.log("run code button clicked...");

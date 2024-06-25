@@ -1,10 +1,15 @@
 package com.compiler.CppRun.handler;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -12,6 +17,10 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 public class CppExecutionHandler extends TextWebSocketHandler {
+
+    private final Map<WebSocketSession,BufferedWriter> sessionWriterMap = new HashMap<>();
+    private final Map<WebSocketSession,BufferedReader> sessionReaderMap = new HashMap<>();
+    private final Map<WebSocketSession,Process> sessionProcessMap = new HashMap<>();
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -27,6 +36,8 @@ public class CppExecutionHandler extends TextWebSocketHandler {
             System.out.println("executig the code...");
             executeCode(session, payload.substring(5));
             System.out.println("Code executed...");
+        }else{
+            sendInputToProcess(session, payload);
         }
     }
 
@@ -59,7 +70,16 @@ public class CppExecutionHandler extends TextWebSocketHandler {
         ProcessBuilder processBuilder = new ProcessBuilder(executablePath);
         Process process = processBuilder.start();
 
+        //store the process and session in map
+        sessionProcessMap.put(session, process);
+
+        BufferedWriter processWriter = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
         BufferedReader processReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+        //store writer and reader in map
+        sessionWriterMap.put(session, processWriter);
+        sessionReaderMap.put(session, processReader);
+
         readProcessOutput(session, processReader);
 
         file.delete();
@@ -86,6 +106,25 @@ public class CppExecutionHandler extends TextWebSocketHandler {
                 e.printStackTrace();
             }
         }).start();
+    }
+
+    private void sendInputToProcess(WebSocketSession session,String payload) throws Exception
+    {
+        BufferedWriter processWriter = sessionWriterMap.get(session);
+
+        if(processWriter == null)
+        {
+            session.sendMessage(new TextMessage("No active program to send input"));
+            return;
+        }
+
+        try {
+            processWriter.write(payload);
+            processWriter.newLine();
+            processWriter.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
