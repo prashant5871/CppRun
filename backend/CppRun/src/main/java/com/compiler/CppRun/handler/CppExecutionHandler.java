@@ -18,9 +18,9 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 public class CppExecutionHandler extends TextWebSocketHandler {
 
-    private final Map<WebSocketSession,BufferedWriter> sessionWriterMap = new HashMap<>();
-    private final Map<WebSocketSession,BufferedReader> sessionReaderMap = new HashMap<>();
-    private final Map<WebSocketSession,Process> sessionProcessMap = new HashMap<>();
+    private final Map<WebSocketSession, BufferedWriter> sessionWriterMap = new HashMap<>();
+    private final Map<WebSocketSession, BufferedReader> sessionReaderMap = new HashMap<>();
+    private final Map<WebSocketSession, Process> sessionProcessMap = new HashMap<>();
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
@@ -36,7 +36,7 @@ public class CppExecutionHandler extends TextWebSocketHandler {
             System.out.println("executig the code...");
             executeCode(session, payload.substring(5));
             System.out.println("Code executed...");
-        }else{
+        } else {
             sendInputToProcess(session, payload);
         }
     }
@@ -70,13 +70,13 @@ public class CppExecutionHandler extends TextWebSocketHandler {
         ProcessBuilder processBuilder = new ProcessBuilder(executablePath);
         Process process = processBuilder.start();
 
-        //store the process and session in map
+        // store the process and session in map
         sessionProcessMap.put(session, process);
 
         BufferedWriter processWriter = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
         BufferedReader processReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
 
-        //store writer and reader in map
+        // store writer and reader in map
         sessionWriterMap.put(session, processWriter);
         sessionReaderMap.put(session, processReader);
 
@@ -85,13 +85,11 @@ public class CppExecutionHandler extends TextWebSocketHandler {
         file.delete();
         Thread.sleep(500);
         File secondFile = new File(executablePath + ".exe");
-        if(secondFile.delete())
-        {
+        if (secondFile.delete()) {
             System.out.println("exe file deleted succesfully...");
-        }else{
+        } else {
             System.out.println("can not delete exe file...");
         }
-        
 
     }
 
@@ -104,16 +102,39 @@ public class CppExecutionHandler extends TextWebSocketHandler {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+            } finally {
+                closeProcess(session);
             }
         }).start();
     }
 
-    private void sendInputToProcess(WebSocketSession session,String payload) throws Exception
-    {
+    private void closeProcess(WebSocketSession session) {
+        try {
+
+            Process process = sessionProcessMap.remove(session);
+            if (process != null) {
+                process.destroy();
+            }
+
+            BufferedWriter processWriter = sessionWriterMap.remove(session);
+            if (processWriter != null) {
+                processWriter.close();
+            }
+
+            BufferedReader processReader = sessionReaderMap.remove(session);
+            if (processReader != null) {
+                processReader.close();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private void sendInputToProcess(WebSocketSession session, String payload) throws Exception {
         BufferedWriter processWriter = sessionWriterMap.get(session);
 
-        if(processWriter == null)
-        {
+        if (processWriter == null) {
             session.sendMessage(new TextMessage("No active program to send input"));
             return;
         }

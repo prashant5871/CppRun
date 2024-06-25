@@ -4,6 +4,10 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { cpp } from '@codemirror/lang-cpp';
 import { java } from '@codemirror/lang-java';
 import { python } from '@codemirror/lang-python';
+import { indentOnInput } from '@codemirror/language';
+import { EditorState } from '@codemirror/state';
+
+
 const CodeEditor = () => {
     const [code, setCode] = useState(`#include<bits/stdc++.h>
 
@@ -11,7 +15,7 @@ using namespace std;
 
 int main()
 {
-    cout << "Hello world" << endl;
+  cout << "Hello world" << endl;
 }
 
 `);
@@ -25,9 +29,9 @@ int main()
         newSocket.onopen = () => {
             console.log("webSocket connection established succesfully...");
         }
-        newSocket.onmessage = (event)=> {
+        newSocket.onmessage = (event) => {
             console.log(event);
-            setOutput((prev) => prev+event.data + "\n");
+            setOutput((prev) => prev + event.data + "\n");
         }
 
         newSocket.onclose = () => {
@@ -57,9 +61,8 @@ int main()
         // console.log("run code button clicked...");
         // console.log("code :", code);
         setOutput("");
-        if(socket && socket.readyState === WebSocket.OPEN)
-        {
-            socket.send("code:"+code);
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send("code:" + code);
         }
     }
 
@@ -84,7 +87,10 @@ int main()
                     <CodeMirror
                         value={code}
                         theme={oneDark}
-                        extensions={[getLanguage(language)]}
+                        extensions={[
+                            getLanguage(language),
+                            indentOnInput()
+                        ]}
                         onChange={(value) => setCode(value)}
                         height="60vh"
                         className='text-lg'
