@@ -16,7 +16,7 @@ int main()
 
 `);
     const [language, setLanguage] = useState("cpp");
-    const [output, setOutput] = useState();
+    const [output, setOutput] = useState("");
     const [input, setInput] = useState();
     const [socket, setSocket] = useState(null);
 
@@ -24,6 +24,10 @@ int main()
         const newSocket = new WebSocket("ws://localhost:8080/executeCpp");
         newSocket.onopen = () => {
             console.log("webSocket connection established succesfully...");
+        }
+        newSocket.onmessage = (event)=> {
+            console.log(event);
+            setOutput((prev) => prev+event.data + "\n");
         }
 
         newSocket.onclose = () => {
